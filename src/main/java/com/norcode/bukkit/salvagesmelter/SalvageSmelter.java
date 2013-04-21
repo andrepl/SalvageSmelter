@@ -1,13 +1,18 @@
 package com.norcode.bukkit.salvagesmelter;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map.Entry;
 
 import org.bukkit.Material;
+import org.bukkit.World;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.FurnaceSmeltEvent;
-import org.bukkit.inventory.FurnaceRecipe;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.Recipe;
 import org.bukkit.inventory.ShapedRecipe;
@@ -17,47 +22,69 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
 
     @Override
     public void onEnable() {
+        saveDefaultConfig();
+        loadConfig();
         getServer().getPluginManager().registerEvents(this, this);
-        addRecipe(new ItemStack(Material.IRON_INGOT, 8), Material.IRON_CHESTPLATE);
-        addRecipe(new ItemStack(Material.IRON_INGOT, 4), Material.IRON_BOOTS);
-        addRecipe(new ItemStack(Material.IRON_INGOT, 5), Material.IRON_HELMET);
-        addRecipe(new ItemStack(Material.IRON_INGOT, 7), Material.IRON_LEGGINGS);
-        addRecipe(new ItemStack(Material.IRON_INGOT, 3), Material.IRON_AXE);
-        addRecipe(new ItemStack(Material.IRON_INGOT, 3), Material.IRON_PICKAXE);
-        addRecipe(new ItemStack(Material.IRON_INGOT, 1), Material.IRON_SPADE);
-        addRecipe(new ItemStack(Material.IRON_INGOT, 2), Material.IRON_HOE);
-        
-        addRecipe(new ItemStack(Material.GOLD_INGOT, 8), Material.GOLD_CHESTPLATE);
-        addRecipe(new ItemStack(Material.GOLD_INGOT, 4), Material.GOLD_BOOTS);
-        addRecipe(new ItemStack(Material.GOLD_INGOT, 5), Material.GOLD_HELMET);
-        addRecipe(new ItemStack(Material.GOLD_INGOT, 7), Material.GOLD_LEGGINGS);
-        addRecipe(new ItemStack(Material.GOLD_INGOT, 3), Material.GOLD_AXE);
-        addRecipe(new ItemStack(Material.GOLD_INGOT, 3), Material.GOLD_PICKAXE);
-        addRecipe(new ItemStack(Material.GOLD_INGOT, 1), Material.GOLD_SPADE);
-        addRecipe(new ItemStack(Material.GOLD_INGOT, 2), Material.GOLD_HOE);
-        
-        addRecipe(new ItemStack(Material.DIAMOND, 8), Material.DIAMOND_CHESTPLATE);
-        addRecipe(new ItemStack(Material.DIAMOND, 4), Material.DIAMOND_BOOTS);
-        addRecipe(new ItemStack(Material.DIAMOND, 5), Material.DIAMOND_HELMET);
-        addRecipe(new ItemStack(Material.DIAMOND, 7), Material.DIAMOND_LEGGINGS);
-        addRecipe(new ItemStack(Material.DIAMOND, 3), Material.DIAMOND_AXE);
-        addRecipe(new ItemStack(Material.DIAMOND, 3), Material.DIAMOND_PICKAXE);
-        addRecipe(new ItemStack(Material.DIAMOND, 1), Material.DIAMOND_SPADE);
-        addRecipe(new ItemStack(Material.DIAMOND, 2), Material.DIAMOND_HOE);
     }
 
-    private HashSet<Material> smeltables = new HashSet<Material>();
+    private HashMap<Material, SmeltRecipe> recipeMap = new HashMap<Material, SmeltRecipe>();
+    private boolean worldWhitelist = true; // blacklist if false
+    private HashSet<String> worldList = new HashSet<String>();
 
-    private void addRecipe(ItemStack result, Material source) {
-        getServer().addRecipe(new FurnaceRecipe(result, source));
-        smeltables.add(source);
+    public ItemStack parseResultStack(String s) {
+        String[] parts = s.split(":");
+        Material mat = Material.valueOf(parts[0].toUpperCase());
+        short data = 0;
+        int qty = 1;
+        if (parts.length == 3) {
+            data = Short.parseShort(parts[1]);
+            qty = Integer.parseInt(parts[2]);
+        } else {
+            qty = Integer.parseInt(parts[1]);
+        }
+        return new ItemStack(mat, qty, data);
+    }
+
+    public boolean enabledInWorld(World w) {
+        boolean enabled = ((worldWhitelist && worldList.contains(w.getName().toLowerCase())) || 
+                (!worldWhitelist && !worldList.contains(w.getName().toLowerCase())));
+        return enabled;
+    }
+
+    public void loadConfig() {
+        String listtype = getConfig().getString("world-selection", "whitelist").toLowerCase();
+        if (listtype.equals("blacklist")) {
+            this.worldWhitelist = false;
+        } else {
+            this.worldWhitelist = true;
+        }
+        this.worldList.clear();
+        for (String wn: getConfig().getStringList("world-list")) {
+            this.worldList.add(wn.toLowerCase());
+        }
+        ConfigurationSection cfg = getConfig().getConfigurationSection("recipes");
+        for (String key: cfg.getKeys(true)) {
+            Material mat = Material.valueOf(key);
+            ItemStack result = parseResultStack(cfg.getString(key));
+            if (mat != null && result != null) {
+                SmeltRecipe sr = new SmeltRecipe(mat, result);
+                getLogger().info("Installing recipe: " + sr);
+                sr.installFurnaceRecipe(this);
+                recipeMap.put(sr.getSmeltable(), sr);
+            } else {
+                getLogger().warning("Invalid Recipe: " + key + " => " + cfg.getString(key));
+            }
+        }
     }
 
     @EventHandler
     public void onSmelt(FurnaceSmeltEvent event) {
         ItemStack orig = event.getSource();
-        if (!smeltables.contains(orig.getType())) return;
-        double percentage = (orig.getType().getMaxDurability() - orig.getDurability()) / (double) orig.getType().getMaxDurability(); 
+        if (!enabledInWorld(event.getBlock().getWorld())) return;
+        if (!recipeMap.containsKey(orig.getType())) return;
+        getLogger().info("MAXD:" + orig.getType().getMaxDurability() + ", D:" + orig.getDurability());
+        double percentage = (orig.getType().getMaxDurability() - orig.getDurability()) / (double) orig.getType().getMaxDurability();
+        getLogger().info("PCT:" + percentage);
         ItemStack result = getSalvage(orig.getType(), event.getResult().getType(), percentage);
         if (result == null || result.getAmount() == 0) {
             event.setResult(new ItemStack(Material.COAL, 1, (short)1));
@@ -66,31 +93,37 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
         }
     }
 
-    public ItemStack getSalvage(Material product, Material raw, double damagePct) {
-        for (Recipe r: getServer().getRecipesFor(new ItemStack(product))) {
-            if (r instanceof ShapedRecipe) {
-                int count = 0;
-                getLogger().info(((ShapedRecipe) r).getIngredientMap().toString());
-                for (Entry<Character, ItemStack> e: ((ShapedRecipe) r).getIngredientMap().entrySet()) {
-                    if (e.getValue() != null && e.getValue().getType().equals(raw)) {
-                        int q = e.getValue().getAmount();
-                        char c = e.getKey();
-                        for (String s: ((ShapedRecipe) r).getShape()) {
-                            for (int i=0;i<s.length();i++) {
-                                if (s.charAt(i) == c) {
-                                    count += q;
-                                }
-                            }
-                        }
+    @EventHandler(ignoreCancelled=true)
+    public void onInventoryClick(InventoryClickEvent event) {
+        if (event.getInventory().getType().equals(InventoryType.FURNACE)) {
+            if (event.isShiftClick()) {
+                getLogger().info("Furnace Click");
+                final Player p = (Player) event.getWhoClicked();
+                
+                getServer().getScheduler().runTaskLater(this, new Runnable() {
+                    public void run() {
+                        p.updateInventory();
                     }
-                }
-                if (raw.equals(Material.GOLD_INGOT)) {
-                    int qty = (int) Math.floor(damagePct * (count * 9));
-                    return new ItemStack(Material.GOLD_NUGGET, qty);
-                }
-                int qty = (int) Math.floor(damagePct * count);
-                return new ItemStack(raw, qty);
+                }, 0);
+                
             }
+        }
+    }
+    
+    public ItemStack getSalvage(Material product, Material raw, double damagePct) {
+        
+        getLogger().info("getSalvage for " + product + " from raw: " + raw + " w/ damage: " + damagePct);
+        SmeltRecipe recipe = recipeMap.get(product);
+        if (raw.equals(recipe.getResult().getType())) {
+            int amt = recipe.getResult().getAmount();
+            amt = (int)(amt * damagePct);
+            ItemStack stack = recipe.getResult().clone();
+            if (amt == 0) {
+                stack = new ItemStack(Material.COAL,1,(short)1);
+            } else {
+                stack.setAmount(amt);
+            }
+            return stack;
         }
         return null;
     }
