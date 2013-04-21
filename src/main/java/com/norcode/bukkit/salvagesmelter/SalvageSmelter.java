@@ -68,11 +68,8 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
             ItemStack result = parseResultStack(cfg.getString(key));
             if (mat != null && result != null) {
                 SmeltRecipe sr = new SmeltRecipe(mat, result);
-                getLogger().info("Installing recipe: " + sr);
                 sr.installFurnaceRecipe(this);
                 recipeMap.put(sr.getSmeltable(), sr);
-            } else {
-                getLogger().warning("Invalid Recipe: " + key + " => " + cfg.getString(key));
             }
         }
     }
@@ -82,9 +79,7 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
         ItemStack orig = event.getSource();
         if (!enabledInWorld(event.getBlock().getWorld())) return;
         if (!recipeMap.containsKey(orig.getType())) return;
-        getLogger().info("MAXD:" + orig.getType().getMaxDurability() + ", D:" + orig.getDurability());
         double percentage = (orig.getType().getMaxDurability() - orig.getDurability()) / (double) orig.getType().getMaxDurability();
-        getLogger().info("PCT:" + percentage);
         ItemStack result = getSalvage(orig.getType(), event.getResult().getType(), percentage);
         if (result == null || result.getAmount() == 0) {
             event.setResult(new ItemStack(Material.COAL, 1, (short)1));
@@ -97,7 +92,6 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
     public void onInventoryClick(InventoryClickEvent event) {
         if (event.getInventory().getType().equals(InventoryType.FURNACE)) {
             if (event.isShiftClick()) {
-                getLogger().info("Furnace Click");
                 final Player p = (Player) event.getWhoClicked();
                 
                 getServer().getScheduler().runTaskLater(this, new Runnable() {
@@ -112,7 +106,6 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
     
     public ItemStack getSalvage(Material product, Material raw, double damagePct) {
         
-        getLogger().info("getSalvage for " + product + " from raw: " + raw + " w/ damage: " + damagePct);
         SmeltRecipe recipe = recipeMap.get(product);
         if (raw.equals(recipe.getResult().getType())) {
             int amt = recipe.getResult().getAmount();
