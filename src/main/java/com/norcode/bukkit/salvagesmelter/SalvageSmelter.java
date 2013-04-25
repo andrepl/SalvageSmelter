@@ -4,8 +4,11 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map.Entry;
 
+import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -72,6 +75,18 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
                 recipeMap.put(sr.getSmeltable(), sr);
             }
         }
+    }
+
+    @Override
+    public boolean onCommand(CommandSender sender, Command command,
+            String label, String[] args) {
+        if (args[0].equalsIgnoreCase("reload")) {
+            reloadConfig();
+            loadConfig();
+            sender.sendMessage(ChatColor.GOLD + "[SalvageSmelter] " + ChatColor.WHITE + "Configuration Reloaded.");
+            return true;
+        }
+        return false;
     }
 
     @EventHandler

@@ -1,4 +1,13 @@
 author: metalhedd
-version: 0.0.3
+version: 0.0.4
 name: SalvageSmelter
 main: com.norcode.bukkit.salvagesmelter.SalvageSmelter
+permissions:
+  salvagesmelter.admin:
+    default: op
+    description: Allows reloading the config file.
+commands:
+  salvagesmelter:
+    description: Reload the Salvage Smelter config file. 
+    usage: "/<command> reload - reload the config file."
+    permission: salvagesmelter.admin
