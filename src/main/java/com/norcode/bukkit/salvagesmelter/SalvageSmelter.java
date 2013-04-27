@@ -98,6 +98,10 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
             loadConfig();
             sender.sendMessage(ChatColor.GOLD + "[SalvageSmelter] " + ChatColor.WHITE + "Configuration Reloaded.");
             return true;
+        } else if (args[0].equalsIgnoreCase("debug")) {
+            debugMode = !debugMode;
+            sender.sendMessage(ChatColor.GOLD + "[SalvageSmelter] " + ChatColor.WHITE + "Debug mode is now " + (debugMode ? ChatColor.DARK_GREEN + "on" : ChatColor.DARK_RED + "off") + ".");
+            return true;
         }
         return false;
     }
@@ -139,12 +143,6 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
     }
 
     @EventHandler(ignoreCancelled=true)
-    public void onFurnaceBurn(FurnaceBurnEvent event) {
-        if (debugMode) {
-            getLogger().info("FurnaceBurn::burnTime:" + event.getBurnTime());
-        }
-    }
-    @EventHandler(ignoreCancelled=true)
     public void onInventoryClick(InventoryClickEvent event) {
         if (event.getInventory().getType().equals(InventoryType.FURNACE)) {
             if (event.getRawSlot() == 0 && !event.isShiftClick()) {
@@ -175,21 +173,10 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
     }
     
     public ItemStack getSalvage(Material product, Material raw, double damagePct) {
-        if (debugMode) {
-            getLogger().info("getSalvage::product:" + product);
-            getLogger().info("getSalvage::raw:" + raw);
-        }
         SmeltRecipe recipe = recipeMap.get(product);
-        if (debugMode) {
-            getLogger().info("getSalvage::recipe:" + recipe);
-        }
         if (raw.equals(recipe.getResult().getType())) {
             int amt = recipe.getResult().getAmount();
             int max = amt;
-            if (debugMode) {
-                getLogger().info("getSalvage::raw Matches!");
-                getLogger().info("getSalvage::maxQty:" + max);
-            }
             amt = (int)(amt * damagePct);
             if (debugMode) {
                 getLogger().info("getSalvage::Mathification:" + max + " * " + damagePct + " = " + amt);
@@ -200,12 +187,8 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
             } else {
                 stack.setAmount(amt);
             }
-            if (debugMode) {
-                getLogger().info("getSalvage::Salvage:" + stack);
-            }
             return stack;
         }
-        getLogger().info("getSalvage::NULL SALVAGE!");
         return null;
     }
 }
