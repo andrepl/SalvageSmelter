@@ -1,7 +1,6 @@
 debug: true
-world-selection: whitelist
-world-list:
-  - world
+world-selection: blacklist
+world-list: []
 recipes:
   IRON_CHESTPLATE: IRON_INGOT:8
   IRON_LEGGINGS: IRON_INGOT:7

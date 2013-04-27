@@ -7,15 +7,20 @@ import java.util.Map.Entry;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Furnace;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.FurnaceBurnEvent;
 import org.bukkit.event.inventory.FurnaceSmeltEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryMoveItemEvent;
 import org.bukkit.event.inventory.InventoryType;
+import org.bukkit.inventory.FurnaceInventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.Recipe;
 import org.bukkit.inventory.ShapedRecipe;
@@ -46,6 +51,10 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
             qty = Integer.parseInt(parts[2]);
         } else {
             qty = Integer.parseInt(parts[1]);
+        }
+        if (qty > mat.getMaxStackSize()) {
+            getLogger().warning("Recipe Result Cannot exceed Max stack size, setting to " + mat.getMaxStackSize());
+            qty = mat.getMaxStackSize();
         }
         return new ItemStack(mat, qty, data);
     }
@@ -93,14 +102,30 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
         return false;
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled=true)
+    public void onInventoryMoveItem(InventoryMoveItemEvent event) {
+        if (event.getDestination().getHolder() instanceof Furnace) {
+            Furnace f = (Furnace) event.getDestination();
+            if (recipeMap.containsKey(event.getItem().getType())) {
+                if (!enabledInWorld(f.getWorld())) {
+                    event.setCancelled(true);
+                }
+            }
+        }
+    }
+
+    @EventHandler(ignoreCancelled=true, priority=EventPriority.HIGH)
     public void onSmelt(FurnaceSmeltEvent event) {
         ItemStack orig = event.getSource();
         if (debugMode) {
             getLogger().info("SmeltEvent::Source: " + orig);
         }
-        if (!enabledInWorld(event.getBlock().getWorld())) return;
-        if (!recipeMap.containsKey(orig.getType())) return;
+        if (!enabledInWorld(event.getBlock().getWorld())) {
+            if (recipeMap.containsKey(orig.getType())) {
+                event.setCancelled(true);
+            }
+            return;
+        }
         double percentage = (orig.getType().getMaxDurability() - orig.getDurability()) / (double) orig.getType().getMaxDurability();
         if (debugMode) {
             getLogger().info("SmeltEvent::Damage:" + orig);
@@ -114,11 +139,31 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
     }
 
     @EventHandler(ignoreCancelled=true)
+    public void onFurnaceBurn(FurnaceBurnEvent event) {
+        if (debugMode) {
+            getLogger().info("FurnaceBurn::burnTime:" + event.getBurnTime());
+        }
+    }
+    @EventHandler(ignoreCancelled=true)
     public void onInventoryClick(InventoryClickEvent event) {
         if (event.getInventory().getType().equals(InventoryType.FURNACE)) {
+            if (event.getRawSlot() == 0 && !event.isShiftClick()) {
+                if (recipeMap.containsKey(event.getCursor().getType()) && !enabledInWorld(((Furnace) event.getInventory().getHolder()).getWorld())) {
+                    if (debugMode) {
+                        getLogger().info("disabled in this world");
+                    }
+                    event.setCancelled(true);
+                    return;
+                }
+            }
             if (event.isShiftClick()) {
+                if (recipeMap.containsKey(event.getCurrentItem().getType()) && !enabledInWorld(((Furnace) event.getInventory().getHolder()).getWorld())) {
+                    if (debugMode) {
+                        getLogger().info("disabled in this world");
+                    }
+                    event.setCancelled(true);
+                }
                 final Player p = (Player) event.getWhoClicked();
-                
                 getServer().getScheduler().runTaskLater(this, new Runnable() {
                     public void run() {
                         p.updateInventory();
