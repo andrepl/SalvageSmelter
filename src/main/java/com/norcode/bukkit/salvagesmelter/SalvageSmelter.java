@@ -177,6 +177,9 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
     }
     
     public ItemStack getSalvage(Material product, Material raw, double damagePct) {
+        if (debugMode) {
+            getLogger().info("getSalvage(" + product + ", " + raw + ", " + damagePct + ")");
+        }
         SmeltRecipe recipe = recipeMap.get(product);
         if (raw.equals(recipe.getResult().getType())) {
             int amt = recipe.getResult().getAmount();
