@@ -34,6 +34,8 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
     private boolean worldWhitelist = true; // blacklist if false
     private HashSet<String> worldList = new HashSet<String>();
 
+    private boolean debugMode = false;
+    
     public ItemStack parseResultStack(String s) {
         String[] parts = s.split(":");
         Material mat = Material.valueOf(parts[0].toUpperCase());
@@ -56,6 +58,8 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
 
     public void loadConfig() {
         String listtype = getConfig().getString("world-selection", "whitelist").toLowerCase();
+        debugMode = getConfig().getBoolean("debug", true);
+        getLogger().info("Debugging is " + (debugMode ? "on" : "off") + ".");
         if (listtype.equals("blacklist")) {
             this.worldWhitelist = false;
         } else {
@@ -92,9 +96,15 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
     @EventHandler
     public void onSmelt(FurnaceSmeltEvent event) {
         ItemStack orig = event.getSource();
+        if (debugMode) {
+            getLogger().info("SmeltEvent::Source: " + orig);
+        }
         if (!enabledInWorld(event.getBlock().getWorld())) return;
         if (!recipeMap.containsKey(orig.getType())) return;
         double percentage = (orig.getType().getMaxDurability() - orig.getDurability()) / (double) orig.getType().getMaxDurability();
+        if (debugMode) {
+            getLogger().info("SmeltEvent::Damage:" + orig);
+        }
         ItemStack result = getSalvage(orig.getType(), event.getResult().getType(), percentage);
         if (result == null || result.getAmount() == 0) {
             event.setResult(new ItemStack(Material.COAL, 1, (short)1));
@@ -120,19 +130,37 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
     }
     
     public ItemStack getSalvage(Material product, Material raw, double damagePct) {
-        
+        if (debugMode) {
+            getLogger().info("getSalvage::product:" + product);
+            getLogger().info("getSalvage::raw:" + raw);
+        }
         SmeltRecipe recipe = recipeMap.get(product);
+        if (debugMode) {
+            getLogger().info("getSalvage::recipe:" + recipe);
+        }
         if (raw.equals(recipe.getResult().getType())) {
             int amt = recipe.getResult().getAmount();
+            int max = amt;
+            if (debugMode) {
+                getLogger().info("getSalvage::raw Matches!");
+                getLogger().info("getSalvage::maxQty:" + max);
+            }
             amt = (int)(amt * damagePct);
+            if (debugMode) {
+                getLogger().info("getSalvage::Mathification:" + max + " * " + damagePct + " = " + amt);
+            }
             ItemStack stack = recipe.getResult().clone();
             if (amt == 0) {
                 stack = new ItemStack(Material.COAL,1,(short)1);
             } else {
                 stack.setAmount(amt);
             }
+            if (debugMode) {
+                getLogger().info("getSalvage::Salvage:" + stack);
+            }
             return stack;
         }
+        getLogger().info("getSalvage::NULL SALVAGE!");
         return null;
     }
 }

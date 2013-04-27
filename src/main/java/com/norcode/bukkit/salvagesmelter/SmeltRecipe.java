@@ -45,4 +45,8 @@ public class SmeltRecipe {
             plugin.getServer().addRecipe(this.recipe);
         }
     }
+
+    public String toString() {
+        return this.smeltable + " -> " + this.result;
+    }
 }
