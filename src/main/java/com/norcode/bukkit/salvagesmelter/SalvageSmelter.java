@@ -145,13 +145,14 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
     @EventHandler(ignoreCancelled=true)
     public void onInventoryClick(InventoryClickEvent event) {
         if (event.getInventory().getType().equals(InventoryType.FURNACE)) {
+            boolean needsUpdate = event.isShiftClick();
             if (event.getRawSlot() == 0 && !event.isShiftClick()) {
                 if (recipeMap.containsKey(event.getCursor().getType()) && !enabledInWorld(((Furnace) event.getInventory().getHolder()).getWorld())) {
                     if (debugMode) {
                         getLogger().info("disabled in this world");
                     }
                     event.setCancelled(true);
-                    return;
+                    needsUpdate = true;
                 }
             }
             if (event.isShiftClick()) {
@@ -160,7 +161,10 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
                         getLogger().info("disabled in this world");
                     }
                     event.setCancelled(true);
+                    needsUpdate = true;
                 }
+            }
+            if (needsUpdate) {
                 final Player p = (Player) event.getWhoClicked();
                 getServer().getScheduler().runTaskLater(this, new Runnable() {
                     public void run() {
