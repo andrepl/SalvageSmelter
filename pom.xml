@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.norcode.bukkit.salvagesmelter</groupId>
   <artifactId>SalvageSmelter</artifactId>
-  <version>0.0.5</version>
+  <version>0.0.6</version>
   <name>SalvageSmelter</name>
     <repositories>
     <repository>

@@ -109,7 +109,7 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
     @EventHandler(ignoreCancelled=true)
     public void onInventoryMoveItem(InventoryMoveItemEvent event) {
         if (event.getDestination().getHolder() instanceof Furnace) {
-            Furnace f = (Furnace) event.getDestination();
+            Furnace f = (Furnace) event.getDestination().getHolder();
             if (recipeMap.containsKey(event.getItem().getType())) {
                 if (!enabledInWorld(f.getWorld())) {
                     event.setCancelled(true);
@@ -130,6 +130,7 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
             }
             return;
         }
+        if (!recipeMap.containsKey(orig.getType())) return;
         double percentage = (orig.getType().getMaxDurability() - orig.getDurability()) / (double) orig.getType().getMaxDurability();
         if (debugMode) {
             getLogger().info("SmeltEvent::Damage:" + orig);
