@@ -15,15 +15,11 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.inventory.FurnaceBurnEvent;
 import org.bukkit.event.inventory.FurnaceSmeltEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryMoveItemEvent;
 import org.bukkit.event.inventory.InventoryType;
-import org.bukkit.inventory.FurnaceInventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.Recipe;
-import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class SalvageSmelter extends JavaPlugin implements Listener {
@@ -67,7 +63,7 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
 
     public void loadConfig() {
         String listtype = getConfig().getString("world-selection", "whitelist").toLowerCase();
-        debugMode = getConfig().getBoolean("debug", true);
+        debugMode = getConfig().getBoolean("debug", false);
         getLogger().info("Debugging is " + (debugMode ? "on" : "off") + ".");
         if (listtype.equals("blacklist")) {
             this.worldWhitelist = false;
