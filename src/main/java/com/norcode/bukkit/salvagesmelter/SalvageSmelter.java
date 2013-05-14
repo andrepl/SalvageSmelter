@@ -15,6 +15,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.FurnaceBurnEvent;
 import org.bukkit.event.inventory.FurnaceSmeltEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryMoveItemEvent;
@@ -34,7 +35,6 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
     private HashMap<Material, SmeltRecipe> recipeMap = new HashMap<Material, SmeltRecipe>();
     private boolean worldWhitelist = true; // blacklist if false
     private HashSet<String> worldList = new HashSet<String>();
-
     private boolean debugMode = false;
     
     public ItemStack parseResultStack(String s) {
@@ -112,6 +112,23 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
                 }
             }
         }
+    }
+
+    @EventHandler(ignoreCancelled=false, priority=EventPriority.HIGHEST)
+    public void onBurn(FurnaceBurnEvent event) {
+        if (hasDD() && event.isCancelled()) {
+            if (enabledInWorld(event.getBlock().getWorld())) {
+                Furnace furnace  = (Furnace) event.getBlock().getState();
+                ItemStack stack = furnace.getInventory().getSmelting();
+                if (recipeMap.containsKey(stack.getType())) {
+                    event.setCancelled(false);
+                }
+            }
+        }
+    }
+
+    public boolean hasDD() {
+        return getServer().getPluginManager().getPlugin("DiabloDrops") != null;
     }
 
     @EventHandler(ignoreCancelled=true, priority=EventPriority.HIGH)
