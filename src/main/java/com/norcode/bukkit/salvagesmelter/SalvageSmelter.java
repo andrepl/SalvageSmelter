@@ -32,6 +32,7 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
         getServer().getPluginManager().registerEvents(this, this);
     }
 
+    private HashMap<FurnaceBurnEvent, Integer> burnTimes = new HashMap<FurnaceBurnEvent, Integer>();
     private HashMap<Material, SmeltRecipe> recipeMap = new HashMap<Material, SmeltRecipe>();
     private boolean worldWhitelist = true; // blacklist if false
     private HashSet<String> worldList = new HashSet<String>();
@@ -105,6 +106,7 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
     @EventHandler(ignoreCancelled=true)
     public void onInventoryMoveItem(InventoryMoveItemEvent event) {
         if (event.getDestination().getHolder() instanceof Furnace) {
+            
             Furnace f = (Furnace) event.getDestination().getHolder();
             if (recipeMap.containsKey(event.getItem().getType())) {
                 if (!enabledInWorld(f.getWorld())) {
@@ -114,14 +116,24 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
         }
     }
 
+    @EventHandler(ignoreCancelled=true, priority=EventPriority.LOWEST)
+    public void onEarlyBurn(FurnaceBurnEvent event) {
+        if (hasDD() && !event.isCancelled()) {
+            burnTimes.put(event, event.getBurnTime());
+        }
+    }
+
     @EventHandler(ignoreCancelled=false, priority=EventPriority.HIGHEST)
-    public void onBurn(FurnaceBurnEvent event) {
-        if (hasDD() && event.isCancelled()) {
+    public void onLateBurn(FurnaceBurnEvent event) {
+        Integer burnTime = burnTimes.remove(event);
+        if (burnTime != null && event.isCancelled()) {
             if (enabledInWorld(event.getBlock().getWorld())) {
                 Furnace furnace  = (Furnace) event.getBlock().getState();
                 ItemStack stack = furnace.getInventory().getSmelting();
                 if (recipeMap.containsKey(stack.getType())) {
                     event.setCancelled(false);
+                    event.setBurning(true);
+                    event.setBurnTime(burnTime);
                 }
             }
         }
