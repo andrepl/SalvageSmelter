@@ -4,6 +4,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map.Entry;
 
+import net.h31ix.updater.Updater;
+import net.h31ix.updater.Updater.UpdateType;
+
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -20,11 +23,12 @@ import org.bukkit.event.inventory.FurnaceSmeltEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryMoveItemEvent;
 import org.bukkit.event.inventory.InventoryType;
+import org.bukkit.event.player.PlayerLoginEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class SalvageSmelter extends JavaPlugin implements Listener {
-
+    private Updater updater;
     @Override
     public void onEnable() {
         saveDefaultConfig();
@@ -37,7 +41,18 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
     private boolean worldWhitelist = true; // blacklist if false
     private HashSet<String> worldList = new HashSet<String>();
     private boolean debugMode = false;
-    
+
+    public void doUpdater() {
+        String autoUpdate = getConfig().getString("auto-update", "notify-only").toLowerCase();
+        if (autoUpdate.equals("true")) {
+            updater = new Updater(this, "salvagesmelter", this.getFile(), UpdateType.DEFAULT, true);
+        } else if (autoUpdate.equals("false")) {
+            getLogger().info("Auto-updater is disabled.  Skipping check.");
+        } else {
+            updater = new Updater(this, "salvagesmelter", this.getFile(), UpdateType.NO_DOWNLOAD, true);
+        }
+    }
+
     public ItemStack parseResultStack(String s) {
         String[] parts = s.split(":");
         Material mat = Material.valueOf(parts[0].toUpperCase());
@@ -62,7 +77,36 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
         return enabled;
     }
 
+    @EventHandler(ignoreCancelled=true)
+    public void onPlayerLogin(PlayerLoginEvent event) {
+        if (event.getPlayer().hasPermission("scribe.admin")) {
+            final String playerName = event.getPlayer().getName();
+            getServer().getScheduler().runTaskLaterAsynchronously(this, new Runnable() {
+                public void run() {
+                    Player player = getServer().getPlayer(playerName);
+                    if (player != null && player.isOnline()) {
+                        getLogger().info("Updater Result: " + updater.getResult());
+                        switch (updater.getResult()) {
+                        case UPDATE_AVAILABLE:
+                            player.sendMessage("A new version of SalvageSmelter is available at http://dev.bukkit.org/server-mods/salvagesmelter/");
+                            break;
+                        case SUCCESS:
+                            player.sendMessage("A new version of SalvageSmelter has been downloaded and will take effect when the server restarts.");
+                            break;
+                        default:
+                            // nothing
+                        }
+                    }
+                }
+            }, 20);
+        }
+    }
+
     public void loadConfig() {
+        if (!getConfig().contains("auto-update")) {
+            getConfig().set("auto-update", true);
+            saveConfig();
+        }
         String listtype = getConfig().getString("world-selection", "whitelist").toLowerCase();
         debugMode = getConfig().getBoolean("debug", false);
         getLogger().info("Debugging is " + (debugMode ? "on" : "off") + ".");
@@ -85,6 +129,7 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
                 recipeMap.put(sr.getSmeltable(), sr);
             }
         }
+        doUpdater();
     }
 
     @Override

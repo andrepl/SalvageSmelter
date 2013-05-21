@@ -1,4 +1,5 @@
 debug: false
+auto-update: true
 world-selection: blacklist
 world-list: []
 recipes:
