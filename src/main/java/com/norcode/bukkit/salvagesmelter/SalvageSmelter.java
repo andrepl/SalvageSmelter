@@ -2,7 +2,6 @@ package com.norcode.bukkit.salvagesmelter;
 
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map.Entry;
 
 import net.h31ix.updater.Updater;
 import net.h31ix.updater.Updater.UpdateType;
@@ -79,13 +78,16 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
 
     @EventHandler(ignoreCancelled=true)
     public void onPlayerLogin(PlayerLoginEvent event) {
+        if (updater == null) {
+            // Auto updater is disabled, no need to notify.
+            return;
+        }
         if (event.getPlayer().hasPermission("scribe.admin")) {
             final String playerName = event.getPlayer().getName();
             getServer().getScheduler().runTaskLaterAsynchronously(this, new Runnable() {
                 public void run() {
                     Player player = getServer().getPlayer(playerName);
                     if (player != null && player.isOnline()) {
-                        getLogger().info("Updater Result: " + updater.getResult());
                         switch (updater.getResult()) {
                         case UPDATE_AVAILABLE:
                             player.sendMessage("A new version of SalvageSmelter is available at http://dev.bukkit.org/server-mods/salvagesmelter/");

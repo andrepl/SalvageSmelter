@@ -1,5 +1,5 @@
 author: metalhedd
-version: 0.1.0
+version: 0.1.1
 name: SalvageSmelter
 main: com.norcode.bukkit.salvagesmelter.SalvageSmelter
 permissions:
