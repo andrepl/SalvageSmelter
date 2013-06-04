@@ -40,6 +40,7 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
     private boolean worldWhitelist = true; // blacklist if false
     private HashSet<String> worldList = new HashSet<String>();
     private boolean debugMode = false;
+    private boolean alwaysYieldFullAmt = false;
 
     public void doUpdater() {
         String autoUpdate = getConfig().getString("auto-update", "notify-only").toLowerCase();
@@ -82,7 +83,7 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
             // Auto updater is disabled, no need to notify.
             return;
         }
-        if (event.getPlayer().hasPermission("scribe.admin")) {
+        if (event.getPlayer().hasPermission("salvagesmelter.admin")) {
             final String playerName = event.getPlayer().getName();
             getServer().getScheduler().runTaskLaterAsynchronously(this, new Runnable() {
                 public void run() {
@@ -90,7 +91,7 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
                     if (player != null && player.isOnline()) {
                         switch (updater.getResult()) {
                         case UPDATE_AVAILABLE:
-                            player.sendMessage("A new version of SalvageSmelter is available at http://dev.bukkit.org/server-mods/salvagesmelter/");
+                            player.sendMessage("A new version of SalvageSmelter is available at http://dev.bukkit.org/bukkit-mods/salvagesmelter/");
                             break;
                         case SUCCESS:
                             player.sendMessage("A new version of SalvageSmelter has been downloaded and will take effect when the server restarts.");
@@ -111,7 +112,7 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
         }
         String listtype = getConfig().getString("world-selection", "whitelist").toLowerCase();
         debugMode = getConfig().getBoolean("debug", false);
-        getLogger().info("Debugging is " + (debugMode ? "on" : "off") + ".");
+        alwaysYieldFullAmt = getConfig().getBoolean("always-yield-full-amount", false);
         if (listtype.equals("blacklist")) {
             this.worldWhitelist = false;
         } else {
@@ -203,6 +204,7 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
             return;
         }
         if (!recipeMap.containsKey(orig.getType())) return;
+
         double percentage = (orig.getType().getMaxDurability() - orig.getDurability()) / (double) orig.getType().getMaxDurability();
         if (debugMode) {
             getLogger().info("SmeltEvent::Damage:" + orig);
@@ -256,10 +258,12 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
         SmeltRecipe recipe = recipeMap.get(product);
         if (raw.equals(recipe.getResult().getType())) {
             int amt = recipe.getResult().getAmount();
-            int max = amt;
-            amt = (int)(amt * damagePct);
-            if (debugMode) {
-                getLogger().info("getSalvage::Mathification:" + max + " * " + damagePct + " = " + amt);
+            if (!alwaysYieldFullAmt) {
+                int max = amt;
+                amt = (int)(amt * damagePct);
+                if (debugMode) {
+                    getLogger().info("getSalvage::Mathification:" + max + " * " + damagePct + " = " + amt);
+                }
             }
             ItemStack stack = recipe.getResult().clone();
             if (amt == 0) {
