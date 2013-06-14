@@ -3,6 +3,9 @@ version: 0.1.3
 name: SalvageSmelter
 main: com.norcode.bukkit.salvagesmelter.SalvageSmelter
 permissions:
+  salvagesmelter.createsign:
+    default: op
+    description: allows a player to create a [SALVAGE] Sign to attach to furnaces
   salvagesmelter.admin:
     default: op
     description: Allows reloading the config file.
