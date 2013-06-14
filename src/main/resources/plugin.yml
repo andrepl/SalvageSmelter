@@ -1,7 +1,8 @@
-author: metalhedd
-version: 0.1.3
-name: SalvageSmelter
-main: com.norcode.bukkit.salvagesmelter.SalvageSmelter
+author: ${project.authors}
+version: ${project.version}
+name: ${project.name}
+main: ${project.main}
+
 permissions:
   salvagesmelter.createsign:
     default: op
