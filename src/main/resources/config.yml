@@ -3,6 +3,7 @@ auto-update: notify-only
 world-selection: blacklist
 world-list: []
 always-yield-full-amount: false
+require-signs: false
 
 recipes:
   IRON_CHESTPLATE: IRON_INGOT:8

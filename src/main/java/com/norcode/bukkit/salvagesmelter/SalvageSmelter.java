@@ -1,5 +1,6 @@
 package com.norcode.bukkit.salvagesmelter;
 
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 
@@ -9,7 +10,10 @@ import net.h31ix.updater.Updater.UpdateType;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.Furnace;
+import org.bukkit.block.Sign;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.ConfigurationSection;
@@ -17,6 +21,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.event.inventory.FurnaceBurnEvent;
 import org.bukkit.event.inventory.FurnaceSmeltEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -34,7 +39,8 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
         loadConfig();
         getServer().getPluginManager().registerEvents(this, this);
     }
-
+    private BlockFace[] fourSides = new BlockFace[] { BlockFace.SOUTH, BlockFace.NORTH, BlockFace.WEST, BlockFace.EAST };
+    private EnumSet<Material> signMaterials = EnumSet.of(Material.WALL_SIGN, Material.SIGN_POST);
     private HashMap<FurnaceBurnEvent, Integer> burnTimes = new HashMap<FurnaceBurnEvent, Integer>();
     private HashMap<Material, SmeltRecipe> recipeMap = new HashMap<Material, SmeltRecipe>();
     private boolean worldWhitelist = true; // blacklist if false
@@ -154,11 +160,14 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
     @EventHandler(ignoreCancelled=true)
     public void onInventoryMoveItem(InventoryMoveItemEvent event) {
         if (event.getDestination().getHolder() instanceof Furnace) {
-            
             Furnace f = (Furnace) event.getDestination().getHolder();
             if (recipeMap.containsKey(event.getItem().getType())) {
                 if (!enabledInWorld(f.getWorld())) {
                     event.setCancelled(true);
+                } else if (getConfig().getBoolean("require-signs", false)) {
+                    if (!isSalvageSmelter(f.getBlock())) {
+                        event.setCancelled(true);
+                    }
                 }
             }
         }
@@ -197,13 +206,19 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
         if (debugMode) {
             getLogger().info("SmeltEvent::Source: " + orig);
         }
-        if (!enabledInWorld(event.getBlock().getWorld())) {
-            if (recipeMap.containsKey(orig.getType())) {
+
+        if (recipeMap.containsKey(orig.getType())) {
+            if (!enabledInWorld(event.getBlock().getWorld())) {
                 event.setCancelled(true);
+                return;
+            } else if (getConfig().getBoolean("require-signs", false)) {
+                if (!isSalvageSmelter(event.getBlock())) {
+                    event.setCancelled(true);
+                }
             }
+        } else {
             return;
         }
-        if (!recipeMap.containsKey(orig.getType())) return;
 
         double percentage = (orig.getType().getMaxDurability() - orig.getDurability()) / (double) orig.getType().getMaxDurability();
         if (debugMode) {
@@ -222,21 +237,36 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
         if (event.getInventory().getType().equals(InventoryType.FURNACE)) {
             boolean needsUpdate = event.isShiftClick();
             if (event.getRawSlot() == 0 && !event.isShiftClick()) {
-                if (recipeMap.containsKey(event.getCursor().getType()) && !enabledInWorld(((Furnace) event.getInventory().getHolder()).getWorld())) {
-                    if (debugMode) {
-                        getLogger().info("disabled in this world");
+                if (recipeMap.containsKey(event.getCursor().getType())) {
+                    if (!enabledInWorld(((Furnace) event.getInventory().getHolder()).getWorld())) {
+                        if (debugMode) {
+                            getLogger().info("disabled in this world");
+                        }
+                        event.setCancelled(true);
+                        needsUpdate = true;
+                    } else if (getConfig().getBoolean("require-signs", false)) {
+                        if (!isSalvageSmelter(((Furnace) event.getInventory().getHolder()).getBlock())) {
+                            event.setCancelled(true);
+                            needsUpdate = true;
+                        }
                     }
-                    event.setCancelled(true);
-                    needsUpdate = true;
+
                 }
             }
             if (event.isShiftClick()) {
-                if (recipeMap.containsKey(event.getCurrentItem().getType()) && !enabledInWorld(((Furnace) event.getInventory().getHolder()).getWorld())) {
-                    if (debugMode) {
-                        getLogger().info("disabled in this world");
+                if (recipeMap.containsKey(event.getCurrentItem().getType())) {
+                    if (!enabledInWorld(((Furnace) event.getInventory().getHolder()).getWorld())) {
+                        if (debugMode) {
+                            getLogger().info("disabled in this world");
+                        }
+                        event.setCancelled(true);
+                        needsUpdate = true;
+                    } else if (getConfig().getBoolean("require-signs", false)) {
+                        if (!isSalvageSmelter(((Furnace) event.getInventory().getHolder()).getBlock())) {
+                            event.setCancelled(true);
+                            needsUpdate = true;
+                        }
                     }
-                    event.setCancelled(true);
-                    needsUpdate = true;
                 }
             }
             if (needsUpdate) {
@@ -250,7 +280,32 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
             }
         }
     }
-    
+
+    private boolean isSalvageSmelter(Block b) {
+        BlockFace attachedFace;
+        for (BlockFace bf: fourSides) {
+            if (signMaterials.contains(b.getRelative(bf).getType())) {
+                Sign sign = (Sign) b.getState();
+                attachedFace = ((org.bukkit.material.Sign)sign.getData()).getAttachedFace();
+                if (attachedFace.equals(bf.getOppositeFace())) {
+                    if (sign.getLine(0).equalsIgnoreCase(ChatColor.DARK_BLUE + "[SALVAGE]")) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    @EventHandler(ignoreCancelled=true)
+    private void onSignChange(SignChangeEvent event) {
+        if (event.getLine(0).equalsIgnoreCase("[SALVAGE]")) {
+            if (event.getPlayer().hasPermission("salvagesmelter.createsign")) {
+                event.setLine(0, ChatColor.DARK_BLUE + event.getLine(0));
+            }
+        }
+    }
+
     public ItemStack getSalvage(Material product, Material raw, double damagePct) {
         if (debugMode) {
             getLogger().info("getSalvage(" + product + ", " + raw + ", " + damagePct + ")");
