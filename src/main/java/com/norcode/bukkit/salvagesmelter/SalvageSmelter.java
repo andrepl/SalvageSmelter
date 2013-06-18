@@ -285,7 +285,7 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
         BlockFace attachedFace;
         for (BlockFace bf: fourSides) {
             if (signMaterials.contains(b.getRelative(bf).getType())) {
-                Sign sign = (Sign) b.getState();
+                Sign sign = (Sign) b.getRelative(bf).getState();
                 attachedFace = ((org.bukkit.material.Sign)sign.getData()).getAttachedFace();
                 if (attachedFace.equals(bf.getOppositeFace())) {
                     if (sign.getLine(0).equalsIgnoreCase(ChatColor.DARK_BLUE + "[SALVAGE]")) {
