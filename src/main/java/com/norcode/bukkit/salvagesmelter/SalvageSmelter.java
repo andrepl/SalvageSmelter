@@ -116,6 +116,10 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
             getConfig().set("auto-update", true);
             saveConfig();
         }
+        if (!getConfig().contains("require-signs")) {
+            getConfig().set("require-signs", false);
+            saveConfig();
+        }
         String listtype = getConfig().getString("world-selection", "whitelist").toLowerCase();
         debugMode = getConfig().getBoolean("debug", false);
         alwaysYieldFullAmt = getConfig().getBoolean("always-yield-full-amount", false);
