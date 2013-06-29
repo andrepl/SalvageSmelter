@@ -225,8 +225,11 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
         }
 
         double percentage = (orig.getType().getMaxDurability() - orig.getDurability()) / (double) orig.getType().getMaxDurability();
+        if (Double.isNaN(percentage)) {
+            percentage = 100D;
+        }
         if (debugMode) {
-            getLogger().info("SmeltEvent::Damage:" + orig);
+            getLogger().info("SmeltEvent::Damage:" + percentage);
         }
         ItemStack result = getSalvage(orig.getType(), event.getResult().getType(), percentage);
         if (result == null || result.getAmount() == 0) {
