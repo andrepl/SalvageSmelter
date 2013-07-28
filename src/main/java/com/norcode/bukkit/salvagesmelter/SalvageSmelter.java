@@ -163,15 +163,17 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
     @Override
     public boolean onCommand(CommandSender sender, Command command,
             String label, String[] args) {
-        if (args[0].equalsIgnoreCase("reload")) {
-            reloadConfig();
-            loadConfig();
-            sender.sendMessage(ChatColor.GOLD + "[SalvageSmelter] " + ChatColor.WHITE + "Configuration Reloaded.");
-            return true;
-        } else if (args[0].equalsIgnoreCase("debug")) {
-            debugMode = !debugMode;
-            sender.sendMessage(ChatColor.GOLD + "[SalvageSmelter] " + ChatColor.WHITE + "Debug mode is now " + (debugMode ? ChatColor.DARK_GREEN + "on" : ChatColor.DARK_RED + "off") + ".");
-            return true;
+        if (args.length > 0) {
+            if (args[0].equalsIgnoreCase("reload")) {
+                reloadConfig();
+                loadConfig();
+                sender.sendMessage(ChatColor.GOLD + "[SalvageSmelter] " + ChatColor.WHITE + "Configuration Reloaded.");
+                return true;
+            } else if (args[0].equalsIgnoreCase("debug")) {
+                debugMode = !debugMode;
+                sender.sendMessage(ChatColor.GOLD + "[SalvageSmelter] " + ChatColor.WHITE + "Debug mode is now " + (debugMode ? ChatColor.DARK_GREEN + "on" : ChatColor.DARK_RED + "off") + ".");
+                return true;
+            }
         }
         return false;
     }
