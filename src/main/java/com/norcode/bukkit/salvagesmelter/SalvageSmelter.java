@@ -142,6 +142,21 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
                 recipeMap.put(sr.getSmeltable(), sr);
             }
         }
+        //Optional: Recipes which have a group assigned and require the groups permission to be used
+        if (getConfig().contains("recipe-groups")) {
+            ConfigurationSection recipeGroups = getConfig().getConfigurationSection("recipe-groups");
+            for (String group : recipeGroups.getKeys(true)) {
+                for (String matStr: recipeGroups.getStringList(group)) {
+                    Material mat = Material.valueOf(matStr);
+                    if (mat != null) {
+                        //Add the group to the existing recipe
+                        if (recipeMap.containsKey(mat)) {
+                            recipeMap.get(mat).setGroup(group);
+                        }
+                    }
+                }
+            }
+        }
         doUpdater();
     }
 
@@ -172,6 +187,10 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
                     if (!isSalvageSmelter(f.getBlock())) {
                         event.setCancelled(true);
                     }
+                }
+                //recipes that have a group require the player to put the item in the furnace himself
+                else if (recipeMap.get(event.getItem().getType()).hasGroup()) {
+                    event.setCancelled(true);
                 }
             }
         }
@@ -243,8 +262,9 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
     public void onInventoryClick(InventoryClickEvent event) {
         if (event.getInventory().getType().equals(InventoryType.FURNACE)) {
             boolean needsUpdate = event.isShiftClick();
-            if (event.getRawSlot() == 0 && !event.isShiftClick()) {
-                if (recipeMap.containsKey(event.getCursor().getType())) {
+            if (event.isShiftClick() || event.getRawSlot() == 0) {
+                Material item = event.isShiftClick() ? event.getCurrentItem().getType() : event.getCursor().getType();
+                if (recipeMap.containsKey(item)) {
                     if (!enabledInWorld(((Furnace) event.getInventory().getHolder()).getWorld())) {
                         if (debugMode) {
                             getLogger().info("disabled in this world");
@@ -257,22 +277,10 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
                             needsUpdate = true;
                         }
                     }
-
-                }
-            }
-            if (event.isShiftClick()) {
-                if (recipeMap.containsKey(event.getCurrentItem().getType())) {
-                    if (!enabledInWorld(((Furnace) event.getInventory().getHolder()).getWorld())) {
-                        if (debugMode) {
-                            getLogger().info("disabled in this world");
-                        }
-                        event.setCancelled(true);
-                        needsUpdate = true;
-                    } else if (getConfig().getBoolean("require-signs", false)) {
-                        if (!isSalvageSmelter(((Furnace) event.getInventory().getHolder()).getBlock())) {
+                    //recipes that have a group require the player to have the groups permission
+                    else if (recipeMap.get(item).hasGroup()) {
+                        if (!event.getWhoClicked().hasPermission("salvagesmelter.group." + recipeMap.get(item).getGroup()))
                             event.setCancelled(true);
-                            needsUpdate = true;
-                        }
                     }
                 }
             }
@@ -283,7 +291,7 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
                         p.updateInventory();
                     }
                 }, 0);
-                
+
             }
         }
     }

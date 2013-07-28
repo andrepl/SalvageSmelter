@@ -5,3 +5,6 @@ dist/*
 *.class
 build/*
 target/*
+#IntelliJ
+*.iml
+.idea

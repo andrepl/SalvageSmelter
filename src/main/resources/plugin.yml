@@ -10,6 +10,9 @@ permissions:
   salvagesmelter.admin:
     default: op
     description: Allows reloading the config file.
+  salvagesmelter.group.*:
+    default: op
+    description: Access to all grouped recipes. Replace * with the group name for a single group.
 commands:
   salvagesmelter:
     description: Reload the Salvage Smelter config file. 
