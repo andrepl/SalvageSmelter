@@ -39,4 +39,4 @@ recipes:
   STONE_SPADE: STONE:1
   STONE_PICKAXE: STONE:3
   SHEARS: IRON_INGOT:2
-  
+recipe-groups:
