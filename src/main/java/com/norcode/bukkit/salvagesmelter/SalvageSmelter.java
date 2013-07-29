@@ -322,17 +322,15 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
     private boolean canInsert(Material item, HumanEntity human, Block furnaceBlock) {
         Validate.notNull(item); Validate.notNull(furnaceBlock);
         if (isSalvageSmelter(furnaceBlock)) {
-            if (recipeMap.containsKey(item)) {
-                //recipes that have a group require the player to have the groups permission
-                if (recipeMap.get(item).hasGroup()) {
-                    if (!human.hasPermission("salvagesmelter.group." + recipeMap.get(item).getGroup())) {
-                        return false;
-                    }
+            if (recipeMap.containsKey(item) && recipeMap.get(item).hasGroup()) {
+                if (!human.hasPermission("salvagesmelter.group." + recipeMap.get(item).getGroup())) {
+                    return false;
                 }
-                return true;
             }
+            return true;
+        } else {
+            return !recipeMap.containsKey(item);
         }
-        return false;
     }
 
     /**
