@@ -3,10 +3,12 @@ package com.norcode.bukkit.salvagesmelter;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Set;
 
 import net.h31ix.updater.Updater;
 import net.h31ix.updater.Updater.UpdateType;
 
+import org.apache.commons.lang.Validate;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -17,16 +19,13 @@ import org.bukkit.block.Sign;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.SignChangeEvent;
-import org.bukkit.event.inventory.FurnaceBurnEvent;
-import org.bukkit.event.inventory.FurnaceSmeltEvent;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryMoveItemEvent;
-import org.bukkit.event.inventory.InventoryType;
+import org.bukkit.event.inventory.*;
 import org.bukkit.event.player.PlayerLoginEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -263,39 +262,83 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
     @EventHandler(ignoreCancelled=true)
     public void onInventoryClick(InventoryClickEvent event) {
         if (event.getInventory().getType().equals(InventoryType.FURNACE)) {
-            boolean needsUpdate = event.isShiftClick();
             if (event.isShiftClick() || event.getRawSlot() == 0) {
                 Material item = event.isShiftClick() ? event.getCurrentItem().getType() : event.getCursor().getType();
-                if (recipeMap.containsKey(item)) {
-                    if (!enabledInWorld(((Furnace) event.getInventory().getHolder()).getWorld())) {
-                        if (debugMode) {
-                            getLogger().info("disabled in this world");
+                boolean needsUpdate = event.isShiftClick();
+                boolean cancelled = canInsert(item, event.getWhoClicked(), ((Furnace) event.getInventory().getHolder()).getBlock());
+                event.setCancelled(cancelled);
+
+                if (needsUpdate || cancelled) {
+                    final Player p = (Player) event.getWhoClicked();
+                    getServer().getScheduler().runTaskLater(this, new Runnable() {
+                        public void run() {
+                            p.updateInventory();
                         }
-                        event.setCancelled(true);
-                        needsUpdate = true;
-                    } else if (getConfig().getBoolean("require-signs", false)) {
-                        if (!isSalvageSmelter(((Furnace) event.getInventory().getHolder()).getBlock())) {
-                            event.setCancelled(true);
-                            needsUpdate = true;
-                        }
-                    }
-                    //recipes that have a group require the player to have the groups permission
-                    else if (recipeMap.get(item).hasGroup()) {
-                        if (!event.getWhoClicked().hasPermission("salvagesmelter.group." + recipeMap.get(item).getGroup()))
-                            event.setCancelled(true);
-                    }
+                    }, 0);
+
                 }
             }
-            if (needsUpdate) {
-                final Player p = (Player) event.getWhoClicked();
-                getServer().getScheduler().runTaskLater(this, new Runnable() {
-                    public void run() {
-                        p.updateInventory();
-                    }
-                }, 0);
+        }
+    }
 
+
+    /**
+     * Called when a Player drags an item in his inventory (since 1.5.2-1.0).
+     * When this Event is called InventoryClickEvent won't be called.
+     */
+    @EventHandler(ignoreCancelled = true)
+    public void onInventoryDrag(InventoryDragEvent event){
+        if (event.getInventory().getType().equals(InventoryType.FURNACE)) {
+            Set<Integer> affectedSlots = event.getRawSlots();
+            if (affectedSlots.contains(0)) {
+                boolean cancelled = canInsert(event.getNewItems().get(0).getType(), event.getWhoClicked(), ((Furnace) event.getInventory().getHolder()).getBlock());
+                event.setCancelled(cancelled);
+
+                if (cancelled) {
+                    final Player p = (Player) event.getWhoClicked();
+                    getServer().getScheduler().runTaskLater(this, new Runnable() {
+                        public void run() {
+                            p.updateInventory();
+                        }
+                    }, 0);
+
+                }
             }
         }
+
+    }
+
+
+    /**
+     * Can a material be inserted into a furnace
+     *
+     * @param item         item to check for
+     * @param human        HumanEntity that tried to insert an item. Can be null if not inserted by a HumanEntity.
+     * @param furnaceBlock actual furnace block. We check for signs in the near vicinity.
+     *
+     * @return if the item can be inserted
+     */
+    private boolean canInsert(Material item, HumanEntity human, Block furnaceBlock)
+    {
+        Validate.notNull(item); Validate.notNull(furnaceBlock);
+        if (recipeMap.containsKey(item)) {
+            if (!enabledInWorld(human.getWorld())) {
+                if (debugMode) {
+                    getLogger().info("disabled in this world");
+                }
+                return true;
+            } else if (getConfig().getBoolean("require-signs", false)) {
+                if (!isSalvageSmelter(furnaceBlock)) {
+                    return true;
+                }
+            }
+            //recipes that have a group require the player to have the groups permission
+            else if (recipeMap.get(item).hasGroup()) {
+                if (!human.hasPermission("salvagesmelter.group." + recipeMap.get(item).getGroup()))
+                    return true;
+            }
+        }
+        return false;
     }
 
     private boolean isSalvageSmelter(Block b) {
