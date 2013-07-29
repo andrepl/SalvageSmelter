@@ -10,6 +10,7 @@ public class SmeltRecipe {
     private Material smeltable;
     private ItemStack result;
     private FurnaceRecipe recipe;
+    private String group;
     
     public SmeltRecipe(Material smeltable, ItemStack result) {
         this.smeltable = smeltable;
@@ -27,6 +28,19 @@ public class SmeltRecipe {
 
     public FurnaceRecipe getFurnaceRecipe() {
         return this.recipe;
+    }
+
+    public void setGroup(String group) {
+        this.group = group;
+    }
+
+    //hasGroup is easier to read than "getGroup() != null"
+    public boolean hasGroup() {
+        return group != null;
+    }
+
+    public String getGroup() {
+        return group;
     }
 
     public void installFurnaceRecipe(JavaPlugin plugin) {
