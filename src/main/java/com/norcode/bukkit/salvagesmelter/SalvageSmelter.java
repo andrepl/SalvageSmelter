@@ -305,9 +305,8 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
      * @return true if SalvageSmelter is enabled in this world, false otherwise.
      */
     public boolean enabledInWorld(World world) {
-        boolean enabled = ((worldWhitelist && worldList.contains(world.getName().toLowerCase())) ||
+        return ((worldWhitelist && worldList.contains(world.getName().toLowerCase())) ||
                 (!worldWhitelist && !worldList.contains(world.getName().toLowerCase())));
-        return enabled;
     }
 
     /**
@@ -356,8 +355,9 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
                     }
                 }
             }
+            return false;
         }
-        return false;
+        return true;
     }
 
     @EventHandler(ignoreCancelled=true)
