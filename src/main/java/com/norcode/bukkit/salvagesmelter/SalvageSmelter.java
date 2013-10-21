@@ -5,9 +5,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
-import net.h31ix.updater.Updater;
-import net.h31ix.updater.Updater.UpdateType;
 
+import net.gravitydevelopment.updater.Updater;
 import org.apache.commons.lang.Validate;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -25,7 +24,9 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.SignChangeEvent;
+import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.inventory.*;
+import org.bukkit.event.player.PlayerExpChangeEvent;
 import org.bukkit.event.player.PlayerLoginEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -53,11 +54,11 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
     public void doUpdater() {
         String autoUpdate = getConfig().getString("auto-update", "notify-only").toLowerCase();
         if (autoUpdate.equals("true")) {
-            updater = new Updater(this, "salvagesmelter", this.getFile(), UpdateType.DEFAULT, true);
+            updater = new Updater(this, 55725, this.getFile(), Updater.UpdateType.DEFAULT, true);
         } else if (autoUpdate.equals("false")) {
             getLogger().info("Auto-updater is disabled.  Skipping check.");
         } else {
-            updater = new Updater(this, "salvagesmelter", this.getFile(), UpdateType.NO_DOWNLOAD, true);
+            updater = new Updater(this, 55725, this.getFile(), Updater.UpdateType.NO_DOWNLOAD, true);
         }
     }
 
@@ -147,6 +148,7 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
             for (String group : recipeGroups.getKeys(true)) {
                 for (String matStr: recipeGroups.getStringList(group)) {
                     Material mat = Material.valueOf(matStr);
+
                     if (mat != null) {
                         //Add the group to the existing recipe
                         if (recipeMap.containsKey(mat)) {
@@ -240,6 +242,8 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
         double percentage = (orig.getType().getMaxDurability() - orig.getDurability()) / (double) orig.getType().getMaxDurability();
         if (Double.isNaN(percentage)) {
             percentage = 1.0D;
+        } else if (percentage < 0) {
+            percentage = 0.0D;
         }
         debug("SmeltEvent::Damage:" + percentage);
         ItemStack result = getSalvage(orig.getType(), event.getResult().getType(), percentage);
@@ -252,6 +256,7 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
 
     @EventHandler(ignoreCancelled=true)
     public void onInventoryClick(InventoryClickEvent event) {
+
         if (event.getInventory().getType().equals(InventoryType.FURNACE)) {
             if (event.isShiftClick() || event.getRawSlot() == 0) {
                 Material item = event.isShiftClick() ? event.getCurrentItem().getType() : event.getCursor().getType();
@@ -320,14 +325,18 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
      */
     private boolean canInsert(Material item, HumanEntity human, Block furnaceBlock) {
         Validate.notNull(item); Validate.notNull(furnaceBlock);
+        debug("Can Insert? " + item + ", " + human + "," + furnaceBlock);
         if (isSalvageSmelter(furnaceBlock)) {
             if (recipeMap.containsKey(item) && recipeMap.get(item).hasGroup()) {
                 if (!human.hasPermission("salvagesmelter.group." + recipeMap.get(item).getGroup())) {
+                    debug("False");
                     return false;
                 }
             }
+            debug("true");
             return true;
         } else {
+            debug("else: " + Boolean.toString(!recipeMap.containsKey(item)));
             return !recipeMap.containsKey(item);
         }
     }
