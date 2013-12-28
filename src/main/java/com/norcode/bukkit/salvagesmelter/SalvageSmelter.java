@@ -136,8 +136,9 @@ public class SalvageSmelter extends JavaPlugin implements Listener {
         for (String key: cfg.getKeys(true)) {
             Material mat = Material.valueOf(key);
             ItemStack result = parseResultStack(cfg.getString(key));
-            if (mat != null && result != null) {
+			if (mat != null && result != null) {
                 SmeltRecipe sr = new SmeltRecipe(mat, result);
+
                 sr.installFurnaceRecipe(this);
                 recipeMap.put(sr.getSmeltable(), sr);
             }

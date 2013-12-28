@@ -16,7 +16,7 @@ public class SmeltRecipe {
     public SmeltRecipe(Material smeltable, ItemStack result) {
         this.smeltable = smeltable;
         this.result = result;
-        this.recipe = new FurnaceRecipe(this.result.clone(), smeltable);
+        this.recipe = new FurnaceRecipe(this.result.clone(), smeltable, 32767);
     }
 
     public ItemStack getResult() {
@@ -57,7 +57,6 @@ public class SmeltRecipe {
             }
         }
         if (!found) {
-
             plugin.getServer().addRecipe(this.recipe);
         }
     }
