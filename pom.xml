@@ -10,6 +10,26 @@
     <project.main>com.norcode.bukkit.salvagesmelter.SalvageSmelter</project.main>
     <project.description>Smelt old tools and armor into their raw materials.</project.description>
   </properties>
+
+    <scm>
+        <connection>scm:git:git://github.com/andrepl/SalvageSmelter.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/andrepl/SalvageSmelter.git</developerConnection>
+        <url>https://github.com/andrepl/SalvageSmelter</url>
+    </scm>
+
+    <distributionManagement>
+        <repository>
+            <id>mvm-releases</id>
+            <name>releases</name>
+            <url>http://maven.minevsmine.com/content/repositories/releases/</url>
+        </repository>
+        <snapshotRepository>
+            <id>mvm-snapshots</id>
+            <name>snapshots</name>
+            <url>http://maven.minevsmine.com/content/repositories/snapshots/</url>
+        </snapshotRepository>
+    </distributionManagement>
+
     <build>
         <resources>
             <resource>
@@ -18,6 +38,14 @@
             </resource>
         </resources>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-deploy-plugin</artifactId>
+                <version>2.7</version>
+                <configuration>
+                    <skip>false</skip>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
